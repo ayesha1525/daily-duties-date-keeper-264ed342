@@ -41,6 +41,19 @@ const Auth = () => {
 
     setIsLoading(true);
     try {
+      // Clean up any existing auth state first for mobile compatibility
+      try {
+        // Clear all auth-related localStorage keys
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -96,6 +109,19 @@ const Auth = () => {
 
     setIsLoading(true);
     try {
+      // Clean up any existing auth state first for mobile compatibility
+      try {
+        // Clear all auth-related localStorage keys
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
