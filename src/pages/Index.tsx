@@ -26,32 +26,10 @@ const sampleBirthdays = [
 ];
 
 const Index = () => {
+  // ALL HOOKS MUST BE AT THE TOP
   const { user, profile, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
-
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, isLoading, navigate]);
-
-  // Show loading while checking auth
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-          <span className="text-muted-foreground">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render if no user (will redirect)
-  if (!user) {
-    return null;
-  }
+  
   const [todos, setTodos] = useState([
     { id: '1', text: 'Review project proposal', completed: false },
     { id: '2', text: 'Buy groceries', completed: true },
@@ -67,6 +45,29 @@ const Index = () => {
   const [newTodo, setNewTodo] = useState('');
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+
+  // Effects after all state hooks
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, isLoading, navigate]);
+
+  // CONDITIONAL LOGIC AFTER ALL HOOKS
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+          <span className="text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const toggleTodo = (id: string) => {
     setTodos(todos.map(todo => 
