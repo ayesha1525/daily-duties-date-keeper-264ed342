@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.c1bce695550e454eb9260d564af85ae4',
-  appName: 'daily-duties-date-keeper',
+  appName: 'Ayesha AI',
   webDir: 'dist',
   server: {
     url: 'https://c1bce695-550e-454e-b926-0d564af85ae4.lovableproject.com?forceHideBadge=true',

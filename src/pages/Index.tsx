@@ -90,9 +90,17 @@ const Index = () => {
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img 
+              src="/lovable-uploads/9b80bb51-801a-45bc-bcb5-7c618112a7b8.png" 
+              alt="Ayesha AI Logo" 
+              className="h-16 w-auto"
+            />
+          </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-info bg-clip-text text-transparent mb-2">
-            Personal Organizer
+            Ayesha AI
           </h1>
+          <p className="text-lg font-medium text-muted-foreground mb-2">Automate the ordinary. Focus on the extraordinary.</p>
           <p className="text-muted-foreground">Manage your appointments, tasks, birthdays, and notes all in one place</p>
         </div>
 
