@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar, CheckSquare, Cake, StickyNote, Plus, LogOut, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample data
 const sampleAppointments = [
@@ -29,22 +31,15 @@ const Index = () => {
   // ALL HOOKS MUST BE AT THE TOP
   const { user, profile, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  const [todos, setTodos] = useState([
-    { id: '1', text: 'Review project proposal', completed: false },
-    { id: '2', text: 'Buy groceries', completed: true },
-    { id: '3', text: 'Call dentist', completed: false },
-    { id: '4', text: 'Finish presentation slides', completed: false },
-  ]);
-
-  const [notes, setNotes] = useState([
-    { id: '1', title: 'Project Ideas', content: 'Some interesting concepts for the next quarter...', createdAt: '2024-01-10', updatedAt: '2024-01-12' },
-    { id: '2', title: 'Meeting Notes', content: 'Key points from today\'s discussion...', createdAt: '2024-01-14', updatedAt: '2024-01-14' },
-  ]);
-
+  const [todos, setTodos] = useState<Array<{ id: string; text: string; completed: boolean }>>([]);
+  const [notes, setNotes] = useState<Array<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>>([]);
   const [newTodo, setNewTodo] = useState('');
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [loadingTodos, setLoadingTodos] = useState(false);
+  const [loadingNotes, setLoadingNotes] = useState(false);
 
   // Effects after all state hooks
   useEffect(() => {
@@ -52,6 +47,56 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, isLoading, navigate]);
+
+  // Fetch user's todos and notes when logged in
+  useEffect(() => {
+    if (user) {
+      fetchTodos();
+      fetchNotes();
+    }
+  }, [user]);
+
+  const fetchTodos = async () => {
+    if (!user) return;
+    setLoadingTodos(true);
+    const { data, error } = await supabase
+      .from('todos')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      toast({ title: "Error", description: "Failed to fetch todos", variant: "destructive" });
+    } else {
+      setTodos(data || []);
+    }
+    setLoadingTodos(false);
+  };
+
+  const fetchNotes = async () => {
+    if (!user) return;
+    setLoadingNotes(true);
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      toast({ title: "Error", description: "Failed to fetch notes", variant: "destructive" });
+    } else {
+      // Map database fields to component expected format
+      const mappedNotes = (data || []).map(note => ({
+        id: note.id,
+        title: note.title,
+        content: note.content || '',
+        createdAt: new Date(note.created_at).toLocaleDateString(),
+        updatedAt: new Date(note.updated_at).toLocaleDateString()
+      }));
+      setNotes(mappedNotes);
+    }
+    setLoadingNotes(false);
+  };
 
   // CONDITIONAL LOGIC AFTER ALL HOOKS
   if (isLoading) {
@@ -69,44 +114,96 @@ const Index = () => {
     return null;
   }
 
-  const toggleTodo = (id: string) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
-  };
+  const toggleTodo = async (id: string) => {
+    if (!user) return;
+    
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
 
-  const deleteTodo = (id: string) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-  };
+    const { error } = await supabase
+      .from('todos')
+      .update({ completed: !todo.completed })
+      .eq('id', id)
+      .eq('user_id', user.id);
 
-  const addTodo = () => {
-    if (newTodo.trim()) {
-      setTodos([...todos, { 
-        id: Date.now().toString(), 
-        text: newTodo.trim(), 
-        completed: false 
-      }]);
-      setNewTodo('');
+    if (error) {
+      toast({ title: "Error", description: "Failed to update todo", variant: "destructive" });
+    } else {
+      setTodos(todos.map(todo => 
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      ));
     }
   };
 
-  const addNote = () => {
-    if (newNote.title.trim() && newNote.content.trim()) {
-      const now = new Date().toLocaleDateString();
-      setNotes([...notes, {
-        id: Date.now().toString(),
+  const deleteTodo = async (id: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('todos')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete todo", variant: "destructive" });
+    } else {
+      setTodos(todos.filter(todo => todo.id !== id));
+    }
+  };
+
+  const addTodo = async () => {
+    if (!newTodo.trim() || !user) return;
+
+    const { error } = await supabase
+      .from('todos')
+      .insert([{
+        text: newTodo.trim(),
+        user_id: user.id,
+        completed: false
+      }]);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to add todo", variant: "destructive" });
+    } else {
+      setNewTodo('');
+      fetchTodos(); // Refresh the list
+    }
+  };
+
+  const addNote = async () => {
+    if (!newNote.title.trim() || !newNote.content.trim() || !user) return;
+
+    const { error } = await supabase
+      .from('notes')
+      .insert([{
         title: newNote.title.trim(),
         content: newNote.content.trim(),
-        createdAt: now,
-        updatedAt: now
+        user_id: user.id
       }]);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to add note", variant: "destructive" });
+    } else {
       setNewNote({ title: '', content: '' });
       setIsNoteDialogOpen(false);
+      fetchNotes(); // Refresh the list
     }
   };
 
-  const deleteNote = (id: string) => {
-    setNotes(notes.filter(note => note.id !== id));
+  const deleteNote = async (id: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
+    } else {
+      setNotes(notes.filter(note => note.id !== id));
+    }
   };
 
   const editNote = (note: any) => {
