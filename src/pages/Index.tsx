@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardCard } from "@/components/DashboardCard";
 import { AppointmentCard } from "@/components/AppointmentCard";
 import { TodoItem } from "@/components/TodoItem";
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, CheckSquare, Cake, StickyNote, Plus } from "lucide-react";
+import { Calendar, CheckSquare, Cake, StickyNote, Plus, LogOut, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 // Sample data
 const sampleAppointments = [
@@ -24,6 +26,32 @@ const sampleBirthdays = [
 ];
 
 const Index = () => {
+  const { user, profile, isLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, isLoading, navigate]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+          <span className="text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if no user (will redirect)
+  if (!user) {
+    return null;
+  }
   const [todos, setTodos] = useState([
     { id: '1', text: 'Review project proposal', completed: false },
     { id: '2', text: 'Buy groceries', completed: true },
@@ -89,19 +117,29 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <img 
-              src="/lovable-uploads/9b80bb51-801a-45bc-bcb5-7c618112a7b8.png" 
-              alt="Ayesha AI Logo" 
-              className="h-16 w-auto"
-            />
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <img 
+                src="/lovable-uploads/9b80bb51-801a-45bc-bcb5-7c618112a7b8.png" 
+                alt="Ayesha AI Logo" 
+                className="h-16 w-auto"
+              />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-info bg-clip-text text-transparent mb-2">
+              Welcome back, {profile?.display_name || 'User'}!
+            </h1>
+            <p className="text-lg font-medium text-muted-foreground mb-2">Automate the ordinary. Focus on the extraordinary.</p>
+            <p className="text-muted-foreground">Manage your appointments, tasks, birthdays, and notes all in one place</p>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-info bg-clip-text text-transparent mb-2">
-            Ayesha AI
-          </h1>
-          <p className="text-lg font-medium text-muted-foreground mb-2">Automate the ordinary. Focus on the extraordinary.</p>
-          <p className="text-muted-foreground">Manage your appointments, tasks, birthdays, and notes all in one place</p>
+          <Button 
+            variant="outline" 
+            onClick={signOut}
+            className="flex items-center gap-2 absolute top-6 right-6"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Dashboard Grid */}
